@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/sirupsen/logrus"
 	"net"
 	"reflect"
+
+	"github.com/sirupsen/logrus"
 )
 
 func CallMethod(i interface{}, methodName string, args []interface{}) (interface{}, error) {
@@ -68,6 +69,7 @@ func HandleOptions(pc net.PacketConn, addr net.Addr, buf []byte, n int) {
 
 	str, err := json.Marshal(&ResponseRPC{Response: response.(string), Error: nil})
 	if err != nil {
+		_, err = pc.WriteTo(str, addr)
 		logrus.Error("Couldn't marshal response for rpc " + err.Error())
 		return
 	}
@@ -75,6 +77,7 @@ func HandleOptions(pc net.PacketConn, addr net.Addr, buf []byte, n int) {
 	_, err = pc.WriteTo(str, addr)
 	if err != nil {
 		logrus.Error("Couldn't send buffer " + err.Error())
+		return
 	}
 	logrus.Info("Successfully handled")
 }
