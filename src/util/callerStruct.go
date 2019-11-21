@@ -9,3 +9,10 @@ func (CallerStruct) ExampleMethod(firstArg string) string {
 func (CallerStruct) ExampleMethod2(firstArg string) string {
 	return fmt.Sprintf("Example method2 with args %s", firstArg)
 }
+
+func (CallerStruct) Ping(str string) string {
+	if str == "Ping" {
+		return "Pong"
+	}
+	return "Not Ping"
+}
