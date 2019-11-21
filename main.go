@@ -9,15 +9,16 @@ import (
 	"github.com/mm-uh/rpc_udp/src/util"
 )
 
+var exit1 = make(chan bool)
+var exit2 = make(chan bool)
+
 func main() {
 	// listen to incoming udp packets
 	go util.ListenServer(":1053")
 	go client(1)
 	go client(2)
-	for {
-
-	}
-
+	<-exit1
+	<-exit2
 }
 
 func client(method int16) {
@@ -80,7 +81,7 @@ func client(method int16) {
 
 		if err != nil {
 			log.Println("Errorrr: " + err.Error())
-
+			break
 		}
 
 		// receive message from server
@@ -91,10 +92,23 @@ func client(method int16) {
 		err = json.Unmarshal(buffer[:n], &response)
 		if err != nil {
 			fmt.Println("Error Unmarshaling response")
+			break
 		}
 		fmt.Println("ITERATION ", i)
 		fmt.Println("UDP Server : ", addr)
 		fmt.Println("Received from UDP server : ", response.Response)
+
+	}
+
+	switch method {
+	case 1:
+		{
+			exit1 <- true
+		}
+	case 2:
+		{
+			exit2 <- true
+		}
 
 	}
 }
