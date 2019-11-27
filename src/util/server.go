@@ -10,12 +10,28 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func CallMethod(i interface{}, methodName string, args []interface{}) (interface{}, error) {
+// Define the RPC server struct
+type Server struct {
+	// This struct is passed as argument, and we made reflection over this interface to call the methods
+	caller interface{}
+	// If the server get any error handle the information, is represented here
+	Error error
+	// Represent the addr of the server
+	addr string
+}
+
+// Create a new instance of *Server struct
+func newServer(i interface{}, addr string) *Server {
+	return &Server{caller: i, addr: addr}
+}
+
+// Call methods associated to Server.caller using reflection
+func (server *Server) callMethod(methodName string, args []string) (interface{}, error) {
 	logrus.Info("Calling method dynamically")
 
 	var ptr, value, finalMethod reflect.Value
 
-	value = reflect.ValueOf(i)
+	value = reflect.ValueOf(server.caller)
 
 	// if we start with a pointer, we need to get value pointed to
 	// if we start with a value, we need to get a pointer to that value
@@ -23,7 +39,7 @@ func CallMethod(i interface{}, methodName string, args []interface{}) (interface
 		ptr = value
 		value = ptr.Elem()
 	} else {
-		ptr = reflect.New(reflect.TypeOf(i))
+		ptr = reflect.New(reflect.TypeOf(server.caller))
 		temp := ptr.Elem()
 		temp.Set(value)
 	}
@@ -51,7 +67,8 @@ func CallMethod(i interface{}, methodName string, args []interface{}) (interface
 	return "", errors.New("error calling method")
 }
 
-func HandleOptions(pc net.PacketConn, addr net.Addr, buf []byte, n int) {
+// Handle the rpc call of methods
+func (server *Server) handleOptions(pc net.PacketConn, addr net.Addr, buf []byte, n int) {
 	fmt.Println("Handle options")
 
 	var requestRPCCall RPCBase
@@ -61,7 +78,7 @@ func HandleOptions(pc net.PacketConn, addr net.Addr, buf []byte, n int) {
 	}
 
 	// Handle rpc options
-	response, err := CallMethod(&CallerStruct{}, requestRPCCall.MethodName, []interface{}{requestRPCCall.FirstArg})
+	response, err := server.callMethod(requestRPCCall.MethodName, requestRPCCall.Args)
 	if err != nil {
 		logrus.Error("Couldn't call method " + err.Error())
 		return
@@ -82,9 +99,11 @@ func HandleOptions(pc net.PacketConn, addr net.Addr, buf []byte, n int) {
 	logrus.Info("Successfully handled")
 }
 
-func ListenServer(addr string) {
-	logrus.Info("Listen server at " + addr)
-	pc, err := net.ListenPacket("udp", addr)
+// Listen in server.addr for calls of the rpc
+// Recive as params a channel that handle when we get a error
+func (server *Server) ListenServer(exit chan bool) {
+	logrus.Info("Listen server at " + server.addr)
+	pc, err := net.ListenPacket("udp", server.addr)
 	if err != nil {
 		logrus.Fatal(err)
 	}
@@ -94,11 +113,11 @@ func ListenServer(addr string) {
 		buf := make([]byte, 1024)
 		n, addr, err := pc.ReadFrom(buf)
 		if err != nil {
-			continue
-
+			server.Error = err
+			break
 		}
-		go HandleOptions(pc, addr, buf, n)
+		go server.handleOptions(pc, addr, buf, n)
 
 	}
-
+	exit <- true
 }
