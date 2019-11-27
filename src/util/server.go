@@ -21,7 +21,7 @@ type Server struct {
 }
 
 // Create a new instance of *Server struct
-func newServer(i interface{}, addr string) *Server {
+func NewServer(i interface{}, addr string) *Server {
 	return &Server{caller: i, addr: addr}
 }
 
