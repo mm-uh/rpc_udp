@@ -2,10 +2,7 @@ package util
 
 type RPCBase struct {
 	MethodName string
-	FirstArg   string
-}
-
-type CallerStruct struct {
+	Args       interface{}
 }
 
 type ResponseRPC struct {

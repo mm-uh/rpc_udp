@@ -26,7 +26,7 @@ func NewServer(i interface{}, addr string) *Server {
 }
 
 // Call methods associated to Server.caller using reflection
-func (server *Server) callMethod(methodName string, args []string) (interface{}, error) {
+func (server *Server) callMethod(methodName string, args interface{}) (interface{}, error) {
 	logrus.Info("Calling method dynamically")
 
 	var ptr, value, finalMethod reflect.Value
@@ -57,9 +57,9 @@ func (server *Server) callMethod(methodName string, args []string) (interface{},
 
 	if finalMethod.IsValid() {
 		params := make([]reflect.Value, 0)
-		for _, arg := range args {
-			params = append(params, reflect.ValueOf(arg))
-		}
+		//for _, arg := range args {
+		params = append(params, reflect.ValueOf(args))
+		//}
 		return finalMethod.Call(params)[0].Interface(), nil
 	}
 
