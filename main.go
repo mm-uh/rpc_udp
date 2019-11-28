@@ -14,30 +14,17 @@ var exit2 = make(chan bool)
 
 type Handler int
 
-func (h *Handler) Ping(i interface{}) string {
-	params, err := util.StrArrayFromInterface(i)
-	if err != nil {
-		return "Mother of god"
-	}
-	for i, val := range params {
-		fmt.Println("Parameter -> ", val)
-		fmt.Println("Index -> ", i)
-	}
+func (h *Handler) Ping(i string, j float64) string {
+	fmt.Println("i -> ", i)
+	fmt.Println("j -> ", j)
 
 	return "Pong"
 }
 
-func (h *Handler) WithTwo(i interface{}) string {
-	params, err := util.StrArrayFromInterface(i)
-	if err != nil {
-		return "Mother of god"
-	}
-	for i, val := range params {
-		fmt.Println("Parameter -> ", val)
-		fmt.Println("Index -> ", i)
-	}
-
-	return "Pong"
+func (h *Handler) WithTwo(i, j string) string {
+	fmt.Println("i -> ", i)
+	fmt.Println("j -> ", j)
+	return "Mauricio es llegua"
 }
 
 func main() {
@@ -47,10 +34,11 @@ func main() {
 	var exited = make(chan bool)
 	go server.ListenServer(exited)
 	go client(1)
-	go client(2)
+	//go client(2)
 	if s := <-exited; s {
 		// Handle Error in method
 		fmt.Println("We get an error listen server")
+		return
 	}
 	<-exit1
 	<-exit2
@@ -79,12 +67,13 @@ func client(method int16) {
 	rpcbase := &util.RPCBase{
 		MethodName: "",
 	}
-	some := make([]string, 0)
+	some := make([]interface{}, 0)
 	switch method {
 	case 1:
 		{
 			rpcbase.MethodName = "Ping"
-			some = append(some, "Ping")
+			some = append(some, int(1))
+			some = append(some, string("45"))
 		}
 	case 2:
 		{

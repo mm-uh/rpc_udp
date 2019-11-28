@@ -27,7 +27,7 @@ func NewServer(i interface{}, addr string) *Server {
 }
 
 // Call methods associated to Server.caller using reflection
-func (server *Server) callMethod(methodName string, args interface{}) (interface{}, error) {
+func (server *Server) callMethod(methodName string, args interface{}) (string, error) {
 	logrus.Info("Calling method dynamically")
 
 	var ptr, value, finalMethod reflect.Value
@@ -57,11 +57,35 @@ func (server *Server) callMethod(methodName string, args interface{}) (interface
 	}
 
 	if finalMethod.IsValid() {
-		params := make([]reflect.Value, 0)
-		//for _, arg := range args {
-		params = append(params, reflect.ValueOf(args))
-		//}
-		return finalMethod.Call(params)[0].Interface(), nil
+		in := make([]reflect.Value, method.Type().NumIn())
+
+		// Get objects passed as params for the methods
+		objects, err := util.InterfaceArrayFromInterface(args)
+		if err != nil {
+			return "", err
+		}
+		if len(objects) != method.Type().NumIn() {
+			return "", errors.New("differ number of params in call")
+		}
+		for i := 0; i < method.Type().NumIn(); i++ {
+			typeOfObj := reflect.TypeOf(objects[i]).Name()
+			typeOfMethodParams := method.Type().In(i).Name()
+			if typeOfObj != typeOfMethodParams {
+				return "", errors.New("differ params type")
+			}
+			object := objects[i]
+			in[i] = reflect.ValueOf(object)
+		}
+		response := finalMethod.Call(in)
+		if len(response) == 0 {
+			return "", nil
+		}
+		switch v := response[0]; v.Kind() {
+		case reflect.String:
+			return v.String(), nil
+		default:
+			return "", errors.New("")
+		}
 	}
 
 	// return or panic, method not found of either type
@@ -85,7 +109,7 @@ func (server *Server) handleOptions(pc net.PacketConn, addr net.Addr, buf []byte
 		return
 	}
 
-	str, err := json.Marshal(&util.ResponseRPC{Response: response.(string), Error: nil})
+	str, err := json.Marshal(&util.ResponseRPC{Response: response, Error: nil})
 	if err != nil {
 		_, err = pc.WriteTo(str, addr)
 		logrus.Error("Couldn't marshal response for rpc " + err.Error())
