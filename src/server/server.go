@@ -1,9 +1,10 @@
-package util
+package server
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/mm-uh/rpc_udp/src/util"
 	"net"
 	"reflect"
 
@@ -71,7 +72,7 @@ func (server *Server) callMethod(methodName string, args interface{}) (interface
 func (server *Server) handleOptions(pc net.PacketConn, addr net.Addr, buf []byte, n int) {
 	fmt.Println("Handle options")
 
-	var requestRPCCall RPCBase
+	var requestRPCCall util.RPCBase
 	err := json.Unmarshal(buf[:n], &requestRPCCall)
 	if err != nil {
 		logrus.Error("Error unMarshalling")
@@ -84,7 +85,7 @@ func (server *Server) handleOptions(pc net.PacketConn, addr net.Addr, buf []byte
 		return
 	}
 
-	str, err := json.Marshal(&ResponseRPC{Response: response.(string), Error: nil})
+	str, err := json.Marshal(&util.ResponseRPC{Response: response.(string), Error: nil})
 	if err != nil {
 		_, err = pc.WriteTo(str, addr)
 		logrus.Error("Couldn't marshal response for rpc " + err.Error())
