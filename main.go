@@ -3,20 +3,55 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	serverRpc "github.com/mm-uh/rpc_udp/src/server"
+	"github.com/mm-uh/rpc_udp/src/util"
 	"log"
 	"net"
-
-	"github.com/mm-uh/rpc_udp/src/util"
 )
 
 var exit1 = make(chan bool)
 var exit2 = make(chan bool)
 
+type Handler int
+
+func (h *Handler) Ping(i interface{}) string {
+	params, err := util.StrArrayFromInterface(i)
+	if err != nil {
+		return "Mother of god"
+	}
+	for i, val := range params {
+		fmt.Println("Parameter -> ", val)
+		fmt.Println("Index -> ", i)
+	}
+
+	return "Pong"
+}
+
+func (h *Handler) WithTwo(i interface{}) string {
+	params, err := util.StrArrayFromInterface(i)
+	if err != nil {
+		return "Mother of god"
+	}
+	for i, val := range params {
+		fmt.Println("Parameter -> ", val)
+		fmt.Println("Index -> ", i)
+	}
+
+	return "Pong"
+}
+
 func main() {
+	var h Handler
+	server := serverRpc.NewServer(h, ":1053")
 	// listen to incoming udp packets
-	go util.ListenServer(":1053")
+	var exited = make(chan bool)
+	go server.ListenServer(exited)
 	go client(1)
 	go client(2)
+	if s := <-exited; s {
+		// Handle Error in method
+		fmt.Println("We get an error listen server")
+	}
 	<-exit1
 	<-exit2
 }
@@ -29,14 +64,7 @@ func client(method int16) {
 
 	RemoteAddr, err := net.ResolveUDPAddr("udp", service)
 
-	//LocalAddr := nil
-	// see https://golang.org/pkg/net/#DialUDP
-
 	conn, err := net.DialUDP("udp", nil, RemoteAddr)
-
-	// note : you can use net.ResolveUDPAddr for LocalAddr as well
-	//        for this tutorial simplicity sake, we will just use nil
-
 	if err != nil {
 		log.Fatal(err)
 
@@ -48,25 +76,25 @@ func client(method int16) {
 
 	defer conn.Close()
 
-	var methodName string
+	rpcbase := &util.RPCBase{
+		MethodName: "",
+	}
+	some := make([]string, 0)
 	switch method {
 	case 1:
 		{
-			methodName = "ExampleMethod"
-
+			rpcbase.MethodName = "Ping"
+			some = append(some, "Ping")
 		}
 	case 2:
 		{
-			methodName = "ExampleMethod2"
+			rpcbase.MethodName = "WithTwo"
+			some = append(some, "Ping")
+			some = append(some, "Ping")
 		}
-
 	}
+	rpcbase.Args = some
 
-	// write a message to server
-	rpcbase := &util.RPCBase{
-		MethodName: methodName,
-		FirstArg:   "Joneeee",
-	}
 	toSend, err := json.Marshal(rpcbase)
 	if err != nil {
 		fmt.Println(err)
