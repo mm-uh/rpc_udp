@@ -6,6 +6,6 @@ type RPCBase struct {
 }
 
 type ResponseRPC struct {
-	Response interface{}
+	Response string
 	Error    error
 }

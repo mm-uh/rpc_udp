@@ -14,7 +14,7 @@ var exit2 = make(chan bool)
 
 type Handler int
 
-func (h *Handler) Ping(i string, j float64) string {
+func (h *Handler) Ping(i float64, j string) string {
 	fmt.Println("i -> ", i)
 	fmt.Println("j -> ", j)
 
